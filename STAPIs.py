@@ -249,13 +249,12 @@ def getFailedTransfer(referer,sturl,session,timeout,timeafter,timebefore):
         sys.exit(1)
     else:
         if (response.status_code ==200):
-            # print(f"account exist")
-            AnyFailedTransfers =True
+            
             writeLog(f" Failed Transfers in place","SUCCESS", log_file)
         else:
-            # print(f"Account does not exist {response.status_code}")
+            
             writeLog(f"No Failed Transfers","WARN", log_file)
-        # print(response.json())
+        
 
     return response.json()
 

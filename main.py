@@ -3,11 +3,20 @@ import urllib.parse
 from datetime import datetime,timedelta
 from email import utils 
 from pytz import timezone
+from configparser import ConfigParser
+
+#Parsing Config
+config = ConfigParser()
+config.read("config/config.ini")
+
 #GLOBAL CONFIGs
 stTimeout = 120  # in seconds
 referer = 'arpit'
-stUrl = 'https://st-jdp-lab:8444/api/v2.0/'
-basicAuth = "YWRtaW46YXh3YXk="  # from echo -n user:pass | base64
+# stUrl = 'https://st-jdp-lab:8444/api/v2.0/'  -> for direct use
+# basicAuth = "YWRtaW46YXh3YXk="  # from echo -n user:pass | base64 , for direct use
+sturl = 'https://'+ config["UserDetails"]["host"] + ':8444/api/v2.0/'   #getting host from config file
+basicAuth = config["UserDetails"]["basicauth"]
+
 sessionMgt = requests.Session()
 
 resubmit_list = []
@@ -21,27 +30,35 @@ def default_func():
 def getFailedTransferAndResubmit(timeafter,timebefore):
     
     failedtransfers = getFailedTransfer(referer,stUrl,sessionMgt,stTimeout,timeafter,timebefore)
-    
-    #######CODE TO GET RESUBMIT ELIGIBLE FILES
-    for i in range(0,failedtransfers["resultSet"]["returnCount"]):
+    # if failedtransfers["resultSet"]["returnCount"] == 0:
+    #     print("No Failed Transfers at this moment.")
+    #     writeLog(f"No Failed Transfers","WARN", log_file)
+    if failedtransfers["resultSet"]["returnCount"] != 0:
 
-        try:
-            resubmit = failedtransfers["result"][i]["metadata"]["links"]["resubmit"]
-        except KeyError:
-            resubmit = None
-        if resubmit:
-            # resubmit_list.append(resubmit)
-            resubmitted_already = {failedtransfers ["result"][i]["resubmitted"]}
-            print(f'is file already resubmitted ? {failedtransfers ["result"][i]["resubmitted"]}')
-            url_rep = resubmit[48:172]
-            print(url_rep)
-            print(f'filename : {failedtransfers ["result"][i]["filename"]}')
-            if failedtransfers ["result"][i]["resubmitted"] == False :
-                feedback = resubmitFiles(referer,stUrl,sessionMgt,stTimeout,url_rep)
-                print(feedback["message"])
-            else:
-                pass
-                # print("the transfer is already resubmitted.")
+        #######CODE TO GET RESUBMIT ELIGIBLE FILES
+        for i in range(0,failedtransfers["resultSet"]["returnCount"]):
+
+            try:
+                resubmit = failedtransfers["result"][i]["metadata"]["links"]["resubmit"]
+            except KeyError:
+                resubmit = None
+            if resubmit:
+                # resubmit_list.append(resubmit)
+                resubmitted_already = {failedtransfers ["result"][i]["resubmitted"]}
+                print(f'is file already resubmitted ? {failedtransfers ["result"][i]["resubmitted"]}')
+                url_rep = resubmit[48:172]
+                print(url_rep)
+                print(f'filename : {failedtransfers ["result"][i]["filename"]}')
+                if failedtransfers ["result"][i]["resubmitted"] == False :
+                    feedback = resubmitFiles(referer,stUrl,sessionMgt,stTimeout,url_rep)
+                    print(feedback["message"])
+                else:
+                    pass
+                    # print("the transfer is already resubmitted.")
+    else:
+        print("No Failed Transfers at this moment.")
+        writeLog(f"No Failed Transfers","WARN", log_file)
+
 
 def last_5_minutes():
     timebefore_utc = datetime.now()
